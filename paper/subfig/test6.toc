@@ -1,0 +1,6 @@
+\contentsline {section}{\numberline {1}Subcaption Shape Options}{6}
+\contentsline {section}{\numberline {2}Subcaption Justification Options}{29}
+\contentsline {section}{\numberline {3}Subcaption Font Options}{29}
+\contentsline {subsection}{\numberline {3.1}``font'' or ``size'' font Options}{29}
+\contentsline {subsection}{\numberline {3.2}``labelfont'' font Options.}{29}
+\contentsline {subsection}{\numberline {3.3}``textfont'' font Options.}{29}

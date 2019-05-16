@@ -1,0 +1,127 @@
+This is pdfTeX, Version 3.14159265-2.6-1.40.19 (TeX Live 2019/dev/Debian) (preloaded format=latex 2019.3.5)  16 MAY 2019 16:31
+entering extended mode
+ restricted \write18 enabled.
+ %&-line parsing enabled.
+**test7.tex
+(./test7.tex
+LaTeX2e <2018-04-01> patch level 5
+(/usr/share/texlive/texmf-dist/tex/latex/base/article.cls
+Document Class: article 2014/09/29 v1.4h Standard LaTeX document class
+(/usr/share/texlive/texmf-dist/tex/latex/base/size10.clo
+File: size10.clo 2014/09/29 v1.4h Standard LaTeX file (size option)
+)
+\c@part=\count80
+\c@section=\count81
+\c@subsection=\count82
+\c@subsubsection=\count83
+\c@paragraph=\count84
+\c@subparagraph=\count85
+\c@figure=\count86
+\c@table=\count87
+\abovecaptionskip=\skip41
+\belowcaptionskip=\skip42
+\bibindent=\dimen102
+) (./subfig.sty
+Package: subfig 2005/06/28 ver: 1.3 subfig package
+
+
+Package subfig Warning: Your document class has a bad definition
+ of \endfigure, most likely
+ \let\endfigure=\end@float
+ which has now been changed to
+ \def\endfigure{\end@float}
+ because otherwise subsequent changes to \end@float
+ (like done by several packages changing float behaviour)
+ can't take effect on \endfigure.
+ Please complain to your document class author.
+
+
+Package subfig Warning: Your document class has a bad definition
+ of \endtable, most likely
+ \let\endtable=\end@float
+ which has now been changed to
+ \def\endtable{\end@float}
+ because otherwise subsequent changes to \end@float
+ (like done by several packages changing float behaviour)
+ can't take effect on \endtable.
+ Please complain to your document class author.
+
+(/usr/share/texlive/texmf-dist/tex/latex/graphics/keyval.sty
+Package: keyval 2014/10/28 v1.15 key=value parser (DPC)
+\KV@toks@=\toks14
+)
+(/usr/share/texlive/texmf-dist/tex/latex/caption/caption.sty
+Package: caption 2018/10/06 v3.3-154 Customizing captions (AR)
+
+(/usr/share/texlive/texmf-dist/tex/latex/caption/caption3.sty
+Package: caption3 2018/09/12 v1.8c caption3 kernel (AR)
+Package caption3 Info: TeX engine: e-TeX on input line 64.
+\captionmargin=\dimen103
+\captionmargin@=\dimen104
+\captionwidth=\dimen105
+\caption@tempdima=\dimen106
+\caption@indent=\dimen107
+\caption@parindent=\dimen108
+\caption@hangindent=\dimen109
+)
+\c@caption@flags=\count88
+\c@ContinuedFloat=\count89
+)
+\c@KVtest=\count90
+\sf@farskip=\skip43
+\sf@captopadj=\dimen110
+\sf@capskip=\skip44
+\sf@nearskip=\skip45
+\c@subfigure=\count91
+\c@subfigure@save=\count92
+\c@lofdepth=\count93
+\c@subtable=\count94
+\c@subtable@save=\count95
+\c@lotdepth=\count96
+\sf@top=\skip46
+\sf@bottom=\skip47
+) (./test7.aux)
+\openout1 = `test7.aux'.
+
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 73.
+LaTeX Font Info:    ... okay on input line 73.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 73.
+LaTeX Font Info:    ... okay on input line 73.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 73.
+LaTeX Font Info:    ... okay on input line 73.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 73.
+LaTeX Font Info:    ... okay on input line 73.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 73.
+LaTeX Font Info:    ... okay on input line 73.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 73.
+LaTeX Font Info:    ... okay on input line 73.
+Package caption Info: Begin \AtBeginDocument code.
+Package caption Info: subfig package v1.3 is loaded.
+Package caption Info: End \AtBeginDocument code.
+
+(./test7.lof
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <7> on input line 1.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <5> on input line 1.
+)
+\tf@lof=\write3
+\openout3 = `test7.lof'.
+
+ (./test7.lot)
+\tf@lot=\write4
+\openout4 = `test7.lot'.
+
+ [1
+
+] [2] [3] (./test7.aux) ) 
+Here is how much of TeX's memory you used:
+ 1532 strings out of 494585
+ 25373 string characters out of 6177801
+ 91781 words of memory out of 5000000
+ 5235 multiletter control sequences out of 15000+600000
+ 4544 words of font info for 17 fonts, out of 8000000 for 9000
+ 14 hyphenation exceptions out of 8191
+ 44i,10n,49p,205b,410s stack positions out of 5000i,500n,10000p,200000b,80000s
+
+Output written on test7.dvi (3 pages, 6692 bytes).
