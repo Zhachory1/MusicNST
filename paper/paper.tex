@@ -9,6 +9,8 @@
 \usepackage{subfig}
 \usepackage{natbib}
 \usepackage{booktabs} % for professional tables
+\usepackage{amsmath,amssymb}
+\DeclareMathOperator{\E}{\mathbb{E}}
 
 % hyperref makes hyperlinks in the resulting PDF.
 % If your build breaks (sometimes temporarily if a hyperlink spans a page)
@@ -59,501 +61,226 @@
 \vskip 0.3in
 ]
 
-% this must go after the closing bracket ] following \twocolumn[ ...
-
-% This command actually creates the footnote in the first column
-% listing the affiliations and the copyright notice.
-% The command takes one argument, which is text to display at the start of the footnote.
-% The \icmlEqualContribution command is standard text for equal contribution.
-% Remove it (just {}) if you do not need this facility.
-
-%\printAffiliationsAndNotice{}  % leave blank if no need to mention equal contribution
-% \printAffiliationsAndNotice{} % otherwise use the standard text.
-
 \begin{abstract}
 Data generation is a hot topic nowadays. The use of GAN's, Variational Autoencoders, and Restricted Boltzman Machines are all examples of methods that can generate data. One method, which will focus on, is called Neural Style Tranfser. It takes the style of one image and places it into a content image. This method works very well, but is limited to dense data formats. We propose a method to utilize VAE's embedding power to shrink the size of sparse data formats to push through a Neural Style Transfer model. That way, for example, we could take the style from one piece of music and impose it on another. We will conduct experiments to prove that using the VAE model to preprocess music will create better and more realistic combination of two songs then without it. 
 \end{abstract}
 
-\section{Electronic Submission}
-\label{submission}
+\section{Introduction}
+\label{introduction}
 
-Submission to ICML 2019 will be entirely electronic, via a web site
-(not email). Information about the submission process and \LaTeX\ templates
-are available on the conference web site at:
-\begin{center}
-\textbf{\texttt{http://icml.cc/}}
-\end{center}
+Transfering style from one object to another is a complicated task, because what does it mean to impose style from an object onto another. In what ways do we describe that content is preserved by the style has changed. One solution for images is to use a Neural Style Transfer (NST) model. (Gatys et al., 2016) The NST model uses a pretrained network to grab it's understanding of both a content image and a style image and merge them together to create a stylized image. This model works well on images because images have dense data representations and there are have been a lot of research to improve image recognition and understanding, allowing for many robust pretrained networks to be available. 
 
-The guidelines below will be enforced for initial submissions and
-camera-ready copies. Here is a brief summary:
-\begin{itemize}
-\item Submissions must be in PDF\@.
-\item The maximum paper length is \textbf{8 pages excluding references and
-    acknowledgements, and 12 pages including references and acknowledgements}
-    (pages 9 through 12 must contain only references and acknowledgements).
-\item \textbf{Do not include author information or acknowledgements} in your
-    initial submission.
-\item Your paper should be in \textbf{10 point Times font}.
-\item Make sure your PDF file only uses Type-1 fonts.
-\item Place figure captions \emph{under} the figure (and omit titles from inside
-    the graphic file itself). Place table captions \emph{over} the table.
-\item References must include page numbers whenever possible and be as complete
-    as possible. Place multiple citations in chronological order.
-\item Do not alter the style template; in particular, do not compress the paper
-    format by reducing the vertical spaces.
-\item Keep your abstract brief and self-contained, one paragraph and roughly
-    4--6 sentences. Gross violations will require correction at the
-    camera-ready phase. The title should have content words capitalized.
-\end{itemize}
+Could this be done with other data types, such as music? The main problem with music data is that it is sparse. Music can be classified, at one step, by any number of 128 different keys being played at one time, with a variable amounts of force, timbre, length of note, and instrument. Along with that, music is temporal. The vector representation can be multiplied thousands of times, depending on how you extract the notes from music. However, whenever you listen to music, you can clearly identify different notes, instruments, beats, and other things in the music. This signifies that music's input space is on the scale millions while what could be played at one time is more down to the scale of tens.
 
-\subsection{Submitting Papers}
+Along with the sheer sparsity, music has a temporal structure. The main models that are used for temporal structures are LSTMs.(Hochreiter et al., 1997) Their long term structure suffers from well-document problems of "vanishing gradients" and "exploding gradients".(Sherstinsky, 2018)  These difficulties become pronounced when the dependencies in the target subsequence span a large number of samples, requiring the window of the unrolled RNN model to be commensurately wide in order to capture these long-range dependencies.
 
-\textbf{Paper Deadline:} The deadline for paper submission that is
-advertised on the conference website is strict. If your full,
-anonymized, submission does not reach us on time, it will not be
-considered for publication. There is no separate abstract submission.
+Both music's sparsity and its temporal structure defines the problems we must overcome if we would want to have style transfer for music.
 
-\textbf{Anonymous Submission:} ICML uses double-blind review: no identifying
-author information may appear on the title page or in the paper
-itself. Section~\ref{author info} gives further details.
+We propose two improvements to handle these problems. One, will preprocess the music, which is coming in as MIDI data, with a Variational Autoencoder to get a lower dimensional representation of our input to feed into the Neural Style Transfer model to handle the sparsity. And two, we will utilize a custom 1D convolutional network to use as a backbone model for our NST model to handle music's temporal nature. We will prove our assumption that the VAE will represent music in a robust way so that, when passed through the NST, the data output will still represent the data distribution of the latent variables. This way we can decode it and get a stylized piece of music out.
 
-\textbf{Simultaneous Submission:} ICML will not accept any paper which,
-at the time of submission, is under review for another conference or
-has already been published. This policy also applies to papers that
-overlap substantially in technical content with conference papers
-under review or previously published. ICML submissions must not be
-submitted to other conferences during ICML's review period. Authors
-may submit to ICML substantially different versions of journal papers
-that are currently under review by the journal, but not yet accepted
-at the time of submission. Informal publications, such as technical
-reports or papers in workshop proceedings which do not appear in
-print, do not fall under these restrictions.
+\section{Background}
+\label{background}
+
+\subsection{Neural Style Transfer}
+
+Gatys et al. first studied the power of CNNs to transform images from one style to another. The idea behind this increasingly popular method is as such: you have two types of images, a content and a style image, and you are trying to transfer the style from one image to the other. To do so we use two types of losses, often referred to as content and style loss. To capture global statistics and spatial arrangements we utilize a Gram matrix that is just the inner product between the the feature map of each images within a certain layer. (Jing et al., 2018) The content loss, denoted by Lc, is the squared Euclidean distance between the feature map of the content image and that of the style image in every layer of the pretrained network. We utilize a similar approach in our proposed neural music transfer methodology. 
+
+\begin{equation} 
+\begin{split}
+	L_s & = \sum_{l \in {l_s}} || G(F^l(I_s)') - G(F^l(I))'||^2 \\
+	L_c & = \sum_{l \in {l_c}} || F^l(I_c)') -  F^l(I)'||^2 \\
+	L & = L_s + L_c \\
+\end{split} 
+\end{equation}
+
+Equation 1: The style loss, the content loss , and the total loss are denoted by $L_s$, $L_c$, and $L$, respectively. ${l_s}$ and ${l_c}$ represent the model’s set of layers. $G$ is the gram matrix function. 
+
+One of the most common networks used for neural style transfer in images is the VGG-19. Deep convolutional networks trained on classification tasks are used for style transfer because they have the style and content information encoded in their layers. (Jing et al., 2018)
 
 \medskip
 
-Authors must provide their manuscripts in \textbf{PDF} format.
-Furthermore, please make sure that files contain only embedded Type-1 fonts
-(e.g.,~using the program \texttt{pdffonts} in linux or using
-File/DocumentProperties/Fonts in Acrobat). Other fonts (like Type-3)
-might come from graphics files imported into the document.
-
-Authors using \textbf{Word} must convert their document to PDF\@. Most
-of the latest versions of Word have the facility to do this
-automatically. Submissions will not be accepted in Word format or any
-format other than PDF\@. Really. We're not joking. Don't send Word.
-
-Those who use \textbf{\LaTeX} should avoid including Type-3 fonts.
-Those using \texttt{latex} and \texttt{dvips} may need the following
-two commands:
-
-{\footnotesize
-\begin{verbatim}
-dvips -Ppdf -tletter -G0 -o paper.ps paper.dvi
-ps2pdf paper.ps
-\end{verbatim}}
-It is a zero following the ``-G'', which tells dvips to use
-the config.pdf file. Newer \TeX\ distributions don't always need this
-option.
-
-Using \texttt{pdflatex} rather than \texttt{latex}, often gives better
-results. This program avoids the Type-3 font problem, and supports more
-advanced features in the \texttt{microtype} package.
-
-\textbf{Graphics files} should be a reasonable size, and included from
-an appropriate format. Use vector formats (.eps/.pdf) for plots,
-lossless bitmap formats (.png) for raster graphics with sharp lines, and
-jpeg for photo-like images.
-
-The style file uses the \texttt{hyperref} package to make clickable
-links in documents. If this causes problems for you, add
-\texttt{nohyperref} as one of the options to the \texttt{icml2019}
-usepackage statement.
-
-
-\subsection{Submitting Final Camera-Ready Copy}
-
-The final versions of papers accepted for publication should follow the
-same format and naming convention as initial submissions, except that
-author information (names and affiliations) should be given. See
-Section~\ref{final author} for formatting instructions.
-
-The footnote, ``Preliminary work. Under review by the International
-Conference on Machine Learning (ICML). Do not distribute.'' must be
-modified to ``\textit{Proceedings of the
-$\mathit{36}^{th}$ International Conference on Machine Learning},
-Long Beach, USA, 2019.
-Copyright 2019 by the author(s).''
-
-For those using the \textbf{\LaTeX} style file, this change (and others) is
-handled automatically by simply changing
-$\mathtt{\backslash usepackage\{icml2019\}}$ to
-$$\mathtt{\backslash usepackage[accepted]\{icml2019\}}$$
-Authors using \textbf{Word} must edit the
-footnote on the first page of the document themselves.
-
-Camera-ready copies should have the title of the paper as running head
-on each page except the first one. The running title consists of a
-single line centered above a horizontal rule which is $1$~point thick.
-The running head should be centered, bold and in $9$~point type. The
-rule should be $10$~points above the main text. For those using the
-\textbf{\LaTeX} style file, the original title is automatically set as running
-head using the \texttt{fancyhdr} package which is included in the ICML
-2019 style file package. In case that the original title exceeds the
-size restrictions, a shorter form can be supplied by using
-
-\verb|\icmltitlerunning{...}|
-
-just before $\mathtt{\backslash begin\{document\}}$.
-Authors using \textbf{Word} must edit the header of the document themselves.
-
-\section{Format of the Paper}
-
-All submissions must follow the specified format.
-
-\subsection{Length and Dimensions}
-
-Papers must not exceed eight (8) pages, including all figures, tables,
-and appendices, but excluding references and acknowledgements. When references and acknowledgements are included,
-the paper must not exceed ten (10) pages.
-Acknowledgements should be limited to grants and people who contributed to the paper.
-Any submission that exceeds
-this page limit, or that diverges significantly from the specified format,
-will be rejected without review.
-
-The text of the paper should be formatted in two columns, with an
-overall width of 6.75~inches, height of 9.0~inches, and 0.25~inches
-between the columns. The left margin should be 0.75~inches and the top
-margin 1.0~inch (2.54~cm). The right and bottom margins will depend on
-whether you print on US letter or A4 paper, but all final versions
-must be produced for US letter size.
-
-The paper body should be set in 10~point type with a vertical spacing
-of 11~points. Please use Times typeface throughout the text.
-
-\subsection{Title}
-
-The paper title should be set in 14~point bold type and centered
-between two horizontal rules that are 1~point thick, with 1.0~inch
-between the top rule and the top edge of the page. Capitalize the
-first letter of content words and put the rest of the title in lower
-case.
-
-\subsection{Author Information for Submission}
-\label{author info}
-
-ICML uses double-blind review, so author information must not appear. If
-you are using \LaTeX\/ and the \texttt{icml2019.sty} file, use
-\verb+\icmlauthor{...}+ to specify authors and \verb+\icmlaffiliation{...}+ to specify affiliations. (Read the TeX code used to produce this document for an example usage.) The author information
-will not be printed unless \texttt{accepted} is passed as an argument to the
-style file.
-Submissions that include the author information will not
-be reviewed.
-
-\subsubsection{Self-Citations}
-
-If you are citing published papers for which you are an author, refer
-to yourself in the third person. In particular, do not use phrases
-that reveal your identity (e.g., ``in previous work \cite{langley00}, we
-have shown \ldots'').
-
-Do not anonymize citations in the reference section. The only exception are manuscripts that are
-not yet published (e.g., under submission). If you choose to refer to
-such unpublished manuscripts \cite{anonymous}, anonymized copies have
-to be submitted
-as Supplementary Material via CMT\@. However, keep in mind that an ICML
-paper should be self contained and should contain sufficient detail
-for the reviewers to evaluate the work. In particular, reviewers are
-not required to look at the Supplementary Material when writing their
-review.
-
-\subsubsection{Camera-Ready Author Information}
-\label{final author}
-
-If a paper is accepted, a final camera-ready copy must be prepared.
-%
-For camera-ready papers, author information should start 0.3~inches below the
-bottom rule surrounding the title. The authors' names should appear in 10~point
-bold type, in a row, separated by white space, and centered. Author names should
-not be broken across lines. Unbolded superscripted numbers, starting 1, should
-be used to refer to affiliations.
-
-Affiliations should be numbered in the order of appearance. A single footnote
-block of text should be used to list all the affiliations. (Academic
-affiliations should list Department, University, City, State/Region, Country.
-Similarly for industrial affiliations.)
-
-Each distinct affiliations should be listed once. If an author has multiple
-affiliations, multiple superscripts should be placed after the name, separated
-by thin spaces. If the authors would like to highlight equal contribution by
-multiple first authors, those authors should have an asterisk placed after their
-name in superscript, and the term ``\textsuperscript{*}Equal contribution"
-should be placed in the footnote block ahead of the list of affiliations. A
-list of corresponding authors and their emails (in the format Full Name
-\textless{}email@domain.com\textgreater{}) can follow the list of affiliations.
-Ideally only one or two names should be listed.
-
-A sample file with author names is included in the ICML2019 style file
-package. Turn on the \texttt{[accepted]} option to the stylefile to
-see the names rendered. All of the guidelines above are implemented
-by the \LaTeX\ style file.
-
-\subsection{Abstract}
-
-The paper abstract should begin in the left column, 0.4~inches below the final
-address. The heading `Abstract' should be centered, bold, and in 11~point type.
-The abstract body should use 10~point type, with a vertical spacing of
-11~points, and should be indented 0.25~inches more than normal on left-hand and
-right-hand margins. Insert 0.4~inches of blank space after the body. Keep your
-abstract brief and self-contained, limiting it to one paragraph and roughly 4--6
-sentences. Gross violations will require correction at the camera-ready phase.
-
-\subsection{Partitioning the Text}
-
-You should organize your paper into sections and paragraphs to help
-readers place a structure on the material and understand its
-contributions.
-
-\subsubsection{Sections and Subsections}
-
-Section headings should be numbered, flush left, and set in 11~pt bold
-type with the content words capitalized. Leave 0.25~inches of space
-before the heading and 0.15~inches after the heading.
-
-Similarly, subsection headings should be numbered, flush left, and set
-in 10~pt bold type with the content words capitalized. Leave
-0.2~inches of space before the heading and 0.13~inches afterward.
-
-Finally, subsubsection headings should be numbered, flush left, and
-set in 10~pt small caps with the content words capitalized. Leave
-0.18~inches of space before the heading and 0.1~inches after the
-heading.
-
-Please use no more than three levels of headings.
-
-\subsubsection{Paragraphs and Footnotes}
-
-Within each section or subsection, you should further partition the
-paper into paragraphs. Do not indent the first line of a given
-paragraph, but insert a blank line between succeeding ones.
-
-You can use footnotes\footnote{Footnotes
-should be complete sentences.} to provide readers with additional
-information about a topic without interrupting the flow of the paper.
-Indicate footnotes with a number in the text where the point is most
-relevant. Place the footnote in 9~point type at the bottom of the
-column in which it appears. Precede the first footnote in a column
-with a horizontal rule of 0.8~inches.\footnote{Multiple footnotes can
-appear in each column, in the same order as they appear in the text,
-but spread them across columns and pages if possible.}
-
-\begin{figure}[ht]
-\vskip 0.2in
-\begin{center}
-\centerline{\includegraphics[width=\columnwidth]{icml_numpapers}}
-\caption{Historical locations and number of accepted papers for International
-Machine Learning Conferences (ICML 1993 -- ICML 2008) and International
-Workshops on Machine Learning (ML 1988 -- ML 1992). At the time this figure was
-produced, the number of accepted papers for ICML 2008 was unknown and instead
-estimated.}
-\label{icml-historical}
-\end{center}
-\vskip -0.2in
-\end{figure}
-
-\subsection{Figures}
-
-You may want to include figures in the paper to illustrate
-your approach and results. Such artwork should be centered,
-legible, and separated from the text. Lines should be dark and at
-least 0.5~points thick for purposes of reproduction, and text should
-not appear on a gray background.
-
-Label all distinct components of each figure. If the figure takes the
-form of a graph, then give a name for each axis and include a legend
-that briefly describes each curve. Do not include a title inside the
-figure; instead, the caption should serve this function.
-
-Number figures sequentially, placing the figure number and caption
-\emph{after} the graphics, with at least 0.1~inches of space before
-the caption and 0.1~inches after it, as in
-Figure~\ref{icml-historical}. The figure caption should be set in
-9~point type and centered unless it runs two or more lines, in which
-case it should be flush left. You may float figures to the top or
-bottom of a column, and you may set wide figures across both columns
-(use the environment \texttt{figure*} in \LaTeX). Always place
-two-column figures at the top or bottom of the page.
-
-\subsection{Algorithms}
-
-If you are using \LaTeX, please use the ``algorithm'' and ``algorithmic''
-environments to format pseudocode. These require
-the corresponding stylefiles, algorithm.sty and
-algorithmic.sty, which are supplied with this package.
-Algorithm~\ref{alg:example} shows an example.
-
-\begin{algorithm}[tb]
-   \caption{Bubble Sort}
-   \label{alg:example}
-\begin{algorithmic}
-   \STATE {\bfseries Input:} data $x_i$, size $m$
-   \REPEAT
-   \STATE Initialize $noChange = true$.
-   \FOR{$i=1$ {\bfseries to} $m-1$}
-   \IF{$x_i > x_{i+1}$}
-   \STATE Swap $x_i$ and $x_{i+1}$
-   \STATE $noChange = false$
-   \ENDIF
-   \ENDFOR
-   \UNTIL{$noChange$ is $true$}
-\end{algorithmic}
-\end{algorithm}
-
-\subsection{Tables}
-
-You may also want to include tables that summarize material. Like
-figures, these should be centered, legible, and numbered consecutively.
-However, place the title \emph{above} the table with at least
-0.1~inches of space before the title and the same after it, as in
-Table~\ref{sample-table}. The table title should be set in 9~point
-type and centered unless it runs two or more lines, in which case it
-should be flush left.
-
-% Note use of \abovespace and \belowspace to get reasonable spacing
-% above and below tabular lines.
-
-\begin{table}[t]
-\caption{Classification accuracies for naive Bayes and flexible
-Bayes on various data sets.}
-\label{sample-table}
-\vskip 0.15in
-\begin{center}
-\begin{small}
-\begin{sc}
-\begin{tabular}{lcccr}
-\toprule
-Data set & Naive & Flexible & Better? \\
-\midrule
-Breast    & 95.9$\pm$ 0.2& 96.7$\pm$ 0.2& $\surd$ \\
-Cleveland & 83.3$\pm$ 0.6& 80.0$\pm$ 0.6& $\times$\\
-Glass2    & 61.9$\pm$ 1.4& 83.8$\pm$ 0.7& $\surd$ \\
-Credit    & 74.8$\pm$ 0.5& 78.3$\pm$ 0.6&         \\
-Horse     & 73.3$\pm$ 0.9& 69.7$\pm$ 1.0& $\times$\\
-Meta      & 67.1$\pm$ 0.6& 76.5$\pm$ 0.5& $\surd$ \\
-Pima      & 75.1$\pm$ 0.6& 73.9$\pm$ 0.5&         \\
-Vehicle   & 44.9$\pm$ 0.6& 61.5$\pm$ 0.4& $\surd$ \\
-\bottomrule
-\end{tabular}
-\end{sc}
-\end{small}
-\end{center}
-\vskip -0.1in
-\end{table}
-
-Tables contain textual material, whereas figures contain graphical material.
-Specify the contents of each row and column in the table's topmost
-row. Again, you may float tables to a column's top or bottom, and set
-wide tables across both columns. Place two-column tables at the
-top or bottom of the page.
-
-\subsection{Citations and References}
-
-Please use APA reference format regardless of your formatter
-or word processor. If you rely on the \LaTeX\/ bibliographic
-facility, use \texttt{natbib.sty} and \texttt{icml2019.bst}
-included in the style-file package to obtain this format.
-
-Citations within the text should include the authors' last names and
-year. If the authors' names are included in the sentence, place only
-the year in parentheses, for example when referencing Arthur Samuel's
-pioneering work \yrcite{Samuel59}. Otherwise place the entire
-reference in parentheses with the authors and year separated by a
-comma \cite{Samuel59}. List multiple references separated by
-semicolons \cite{kearns89,Samuel59,mitchell80}. Use the `et~al.'
-construct only for citations with three or more authors or after
-listing all authors to a publication in an earlier reference \cite{MachineLearningI}.
-
-Authors should cite their own work in the third person
-in the initial version of their paper submitted for blind review.
-Please refer to Section~\ref{author info} for detailed instructions on how to
-cite your own papers.
-
-Use an unnumbered first-level section heading for the references, and use a
-hanging indent style, with the first line of the reference flush against the
-left margin and subsequent lines indented by 10 points. The references at the
-end of this document give examples for journal articles \cite{Samuel59},
-conference publications \cite{langley00}, book chapters \cite{Newell81}, books
-\cite{DudaHart2nd}, edited volumes \cite{MachineLearningI}, technical reports
-\cite{mitchell80}, and dissertations \cite{kearns89}.
-
-Alphabetize references by the surnames of the first authors, with
-single author entries preceding multiple author entries. Order
-references for the same authors by year of publication, with the
-earliest first. Make sure that each reference includes all relevant
-information (e.g., page numbers).
-
-Please put some effort into making references complete, presentable, and
-consistent. If using bibtex, please protect capital letters of names and
-abbreviations in titles, for example, use \{B\}ayesian or \{L\}ipschitz
-in your .bib file.
-
-\subsection{Software and Data}
-
-We strongly encourage the publication of software and data with the
-camera-ready version of the paper whenever appropriate. This can be
-done by including a URL in the camera-ready copy. However, do not
-include URLs that reveal your institution or identity in your
-submission for review. Instead, provide an anonymous URL or upload
-the material as ``Supplementary Material'' into the CMT reviewing
-system. Note that reviewers are not required to look at this material
-when writing their review.
-
-% Acknowledgements should only appear in the accepted version.
-\section*{Acknowledgements}
-
-\textbf{Do not} include acknowledgements in the initial version of
-the paper submitted for blind review.
-
-If a paper is accepted, the final camera-ready version can (and
-probably should) include acknowledgements. In this case, please
-place such acknowledgements in an unnumbered section at the
-end of the paper. Typically, this will include thanks to reviewers
-who gave useful comments, to colleagues who contributed to the ideas,
-and to funding agencies and corporate sponsors that provided financial
-support.
-
-
-% In the unusual situation where you want a paper to appear in the
-% references without citing it in the main text, use \nocite
-\nocite{langley00}
+\subsection{MusicVae}
+
+Music encoding has been a challenge within the machine learning community, because of its sparsity. To address this issue the Magenta team at Google has created a neural architecture for encoding music sequences. (Roberts et al, 2018)  Their model, Hierarchical Latent Vector Model, is a novel structure to encode long term structured sequences, such as music.(Roberts et al, 2018) They used a bidirectional LSTM layer structure to encode a long sequence of music into latent variables.(Schuster et al., 1997)  Once they sample from the encoded latent variables, they then use a 2-layer tree like decoder to parse through the encoding to generate music.
+
+A VAE is a basic Autoencoder, but the latent codes are trained and sampled from a gaussian distribution.(Hinton et al., 2006) Because we are training a Variational Autoencoder, we want to minimize both the reconstruction error and the distribution divergence between our latent codes and a standard normal gaussian distributions.(Kingma et al., 2014) This can be achieved by maximizing the evidence lower bound (ELBO) which consists of maximizing the log likelihood of the reconstruction and minimizing the KL divergence.
+
+\begin{equation} 
+\begin{split}
+	\E [ log p_\theta(x|z) ] - \beta KL(q_\lambda(z|x) || p(z))
+\end{split} 
+\end{equation}
+
+Equation 2: ELBO denoted by E. Theta represents the model parameters, x is the input, z is the latent variables, and KL stands for KL divergence.
+
+Setting $\beta < 1$ encourages the model to prioritize reconstruction quality over learning a compact representation (Higgins et al., 2017).
+
+\textbf{Bidirectional Encoder} For the encoder $q_\lambda(z | x)$, they used a two-layer bidirectional LSTM network to produce latent codes from the last LSTM cell with these equations
+
+\begin{equation} 
+\begin{split}
+	\mu & = W_{h_\mu}h_T + b_\mu \\
+	\sigma & = log(exp(W_{h\sigma}h_T + b_\sigma) + 1) \\
+\end{split} 
+\end{equation}
+
+Equation 3: The above equations represent the mean and standard deviation of the bidirectional encoder. Where the $W$s and $b$s are weight matrices and bias vectors, respectively. 
+
+\textbf{Hierarchical Decoder} The hierarchical architecture of this decoder helps mitigate the vanishing influence of the latent state at the output sequence is being generated. Assume that the input sequence (and target output sequence) $x$ can be segmented into U non overlapping subsequences $y_u$ with endpoints $i_u$ so that
+
+\begin{equation} 
+\begin{split}
+y_u & = { x_{i_u} , x_{i_u+1}, x_{i_u+2}, . . . , x_{i_{u+1}-1 } } \\
+x & = {y_1, y_2, . . . , y_U } \\
+\end{split} 
+\end{equation} Equation 4.
+
+where we define the special case of $i_U+1 = T$. Then, the latent vector z is passed through a fully-connected layer followed by a tanh activation to get the initial state of a “conductor” RNN. The conductor RNN produces $U$ embedding vectors $c = {c_1, c_2, . . . , c_U }$, one for each subsequence. The last unidirectional layer's cells take each subsequence individually to construct their portion of the reconstruction. 
+
+We use this architecture to help encode music into a lower dimensional representation so that we may have a dense format to push into our Neural Style Transfer model. 
+
+
+\section{Related Work}
+\label{related}
+
+Magenta's MusicVAE model could be manipulated to perform style transfer.(Roberts et al., 2018) The broad goal of an autoencoder is to learn a compact representation of the data. If we could coerce that representation to be put onto a latent space, we could utilize latent space manipulations to get a combination of two different pieces of music. For example, given two pieces of music latent representation, we could interpolate a path between their points in the latent space. We can pull points off that path and decode them to get a logical combination between both pieces. This can be perceived as putting style of piece onto another. 
+
+However, what does style imply here? That is determined by the latent space and the path that is traverse. It is safe to assume that the traversal will be smooth and expected, since we are modeling some latent space. Unfortunately, this doesn't predict the optimal position in the path that optimizes that we keep the content of music 1 while imposing the style of music 2. We are essentially at the mercy of the latent space.
+
+Another related project is the Music CycleGAN.(Brunner et al., 2018) A CycleGAN is a Generative Adversarial Network (GAN) that uses two networks and two discriminators.(Zhu et al., 2017) One generator brings in an image from class X and outputs an image from class Y and vice versa for the other generator. One discriminator is built to identify one class while the other is built for another. The objective for the generator is to fool the discriminator while the discriminator is trying to see which inputs are real or not. 
+
+\begin{equation} 
+\begin{split}
+L_{adv}(G, D_y, X) & = \frac{1}{m} \sum_{i=1}^{m} (1 - D_y(G(x_i)))^2 \\
+L_{adv}(F, D_y, X) & = \frac{1}{m} \sum_{i=1}^{m} (1 - D_x(F(y_i)))^2 \\
+\end{split} 
+\end{equation}
+
+The cycle comes in when we first generate an image from $X$ to $Y$, then feed the generated $Y$ to the other generator to get a "reconstructed" $X$. The cycle loss is loss of information from between $X$ and the "reconstructed" $X$. The same can be done with samples from the $Y$ class. 
+
+\begin{equation} 
+\begin{split}
+L_{cyc}(G, F, X, Y) & =  \frac{1}{m} \sum_{i=1}^{m} \left[ F(G(x_i)) - x_i \right] + \left[ G(F(y_i)) - y_i \right] \\
+L & = L_{adv} + \lambda L_{cyc} \\
+\end{split} 
+\end{equation}
+
+We can see how this can be augmented for music data. The generators could be either 1D convolution networks or recurrent neural networks to generate from one style of music to another. However, the user is limited to only going between style $X$ to style $Y$. Our method gives the user freedom to use any music they wish to represent their content and style. 
+
+
+\section{Approach}
+\label{approach}
+
+In our experiments we aim to create a flexible infrastructure that can allows researchers to transfer music style. To address the issue of the sparse representation of music notes we propose an encoding and decoding step prior and after style. We hypothesize that this will densify the input and thus allow for a smoother style transfer. Furthermore, we plan to encode the data using a music VAE similar to Magenta. However, Magenta's input structure included monotonic sequencing that dropped chord structures and their library was very inflexible. Therefore, we created our own model which mimics Magenta's model architecture.
+
+In addition, we propose the use of a different classifier than the VGG, most commonly used in image style transfer, as it is constructed to work on a three channeled data and music files have a temporal structure. We train our own convolutional classifier that predicts composers because we believe that the model will retain information about style and content given that each composer has a different style of writing music. This is similar to the idea of predicting object within images in order to have the model learn information about the image content and style. 
+
+
+\section{Model Infrastructure}
+\label{infrastructure}
+
+\subsection{1D Conv Composer Classifier}
+
+We created a one dimensional convolutional classifier on Magenta’s dataset that predicts the composer given a midi file as an input.(Roberts et al., 2018)  The model consists of three convolutional layers followed by three dense layers. We convolute over the length of the music sequence because neighboring notes can form meaningful music pieces. Furthermore, certain patterns can be established within clusters of notes. Our three layer convolutional model has a funnel like structure. We start off with a convolutional layer that has many filters and a large kernel size. This would allow the model too look at a wide range of patterns within the music sequence over many notes. The second layer significantly reduces the kernel and in the third layer we have one filter and a very small kernel size. This should encode the composer information well into one logit. The output of this convolutional network is fed into a feed forward network where we slowly reduce the dimensionality to the number of unique composer we aim to predict. The network outputs a logit score for each composer and we use cross entropy against the golden one hot as a loss to train the model. The following is the equation we use to pass data from one layer of a 1D convolution.
+
+\begin{equation} 
+\begin{split}
+	X_k^{(l)} & = f(\sum_c W_k^{(l),c} * X^{(l-1), c} + B_k^l)
+\end{split} 
+\end{equation}
+
+where $k$ denotes the kernel number, $c$ represents the channel number of the input $X^{(l-1)}$. $W_k^{(l),c}$ is the $k$th convolutional kernel corresponding to the $c$th channel, and $B_k^l$ is the learnable bias corresponding to the $k$th kernel. $f(\cdot)$ is the activation function and $*$ is the element wise multiplication
+
+
+\subsection{VAE}
+
+We created VAE similar to Magenta's Hierarchical VAE model trained on Magenta’s dataset that tries to learn a latent representation of the input.(Roberts et al., 2018)  The model consists of 2 layers of bidirectional LSTMs that predicts both a mean and standard deviation. During training, a vector, $z$,  is sampled from predicted values imposed onto a standard normal gaussian distribution. That $z$ is then fed through the decoder, or generator. The decoder consist of 2 layers of unidirectional LSTMs. The first layer reads in the z every time in addition the the previous state of the LSTM. This layer decides what part of the final sequence the next layer will produce. It outputs it's instructions to the next layer, where it will reconstruct the input.
+
+We will use both the trained encoder and decoder during our process. We will use the encoder to generate a lower dimensional representation of our input music file, split by a certain number of bars. Assuming that we have midi file that has 4000 steps in it with a range of 128 keys, if that is passed through our encoder that expects split of 32 steps and has a latent vector size of 64, we will have an output of 125 rows by 64 columns. After the NST model spits out the generated music data, we will use the decoder to generate actual music from it. 
+
+
+\section{Experiments}
+\label{experiments}
+
+To show that we can better transfer music style by using a custom one dimensional music classifier and a custom variational autoencoder we have a set of four experiments. 
+
+\centerline{\includegraphics[width=\columnwidth]{normalstruct}}
+\centerline{\includegraphics[width=\columnwidth]{vaestruct}}
+
+Figure 1: Diagrams of the music style transfer experiments. Each diagram represents a set of two experiments. Experiment one and two are shown on the left image, while Experiment three and four are shown on the right. 
+
+Experiment 1 - Feed in music files in midi format straight into the VGG model. To be able to do so we copy the music information three times to add an additional dimension to the input tensor. This allows us to mimic the three channeled structure of images. Similar approaches have been used for grayscale image style transfer. 
+
+Experiment 2 - Feed in music files in midi format straight into our Custom Composer Classifier.
+
+Experiment 3 - Encode music files in midi format using our Music VAE, transfer style using the VGG model, and then decode back into midi like format. Note: in this experiment we still expand one of the dimensions to accommodate VGG’s input constraints. 
+
+Experiment 4 - Encode music files in midi format using our Music VAE, transfer style using our Custom Composer Classifier, and then decode back into midi like format.
+
+Whenever we compute the loss using a VGG model for the style transfer we use the Gram-matrix for the style transfer, while when we use the Custom Composer Classifier we use just the dot product
+
+\section{Results}
+\label{results}
+
+You can find the full results and our conclusion at our Github: https://github.com/Zhachory1/MusicNST
+
+\centerline{\includegraphics[width=\columnwidth]{tracks}}
+
+These tracks are pulled from iterations 1, 10, and 100 from the Neural Style Transfer model using VGG as the backbone without the VAE preprocessing. You can notice that the model is creating denser formats the more iterations it does. We did not tune the parameter for putting a ratio between content and style loss, which was set at 1:4. Tuning this would've put less emphasis on imposing a style in the content music, which could have proved to be better. 
+
+\centerline{\includegraphics[width=\columnwidth]{flatline}}
+\centerline{\includegraphics[width=\columnwidth]{curvedline}}
+
+Figure 2: Music neural style transfer loss curvature. The x-axis is number of steps and the y-axis is loss value. The one on the left was generated using our simple music classifier, while the one on the right was generated through a VGG model. 
+
+We believe that our convolutional network was too shallow to transfer music style appropriately. When we trained with deeper networks we were overfitting with more layers. However, when we trained using the VAE and the same network architecture we were underfitting. This hints that we need to explore deeper architectures when dealing with music style transfer. 
+
+
+Given significant processing constraints we were unable to train a good copy of the music VAE. Therefore, we decided to halt Experiment three and four. We were only able to train our VAE for a few epochs which was insufficient, given that when we tried to use it to retrain a better classifier the results were worse than just feeding in midi files straight in. The accuracy on the test set was about 10\% lower(accuracy on the simple classifier is 50\% and on the one trained with a VAE is 41\%). 
+
+\centerline{\includegraphics[width=\columnwidth]{badloss}}
+
+Figure 3: Loss curve on test and train on the composer classification model trained using VAE as an encoder over the epochs. 
+
+These results from training the composer classifier with latent code from our VAE were inconclusive since the encoding model was not thoroughly trained. Looking at the distribution of all the Z values, no value went passed 0.0025 and clustered around 0. These low and clustered numbers suggest that we trained with too much emphasis on minimizing the KL divergence. Thus, the reconstruction error was shadowed, consequently taking away our ability to reconstruct our input effectively. 
+
+\section{Conclusion}
+\label{conclusion}
+
+Further experiments need to be conducted with a better trained Music VAE. We spent a significant amount of time redesigning the VAE in order to overcome the constraints of the one delivered by the Magenta Team. Unfortunately, it was not effective when used in training because we were unable to fully train it. Moreover, our custom classification model showed good results when trained on test data but was not very robust when used for music style transfer straight from midi files. There were so many nuances from converting midi files, to an intermediate format, to a piano roll/tensor format. There were also many types of channels that could've been pulled from MIDI files, such as onset, offset, active, velocities, along with others. These complications made it difficult to move data around and work with.
 
 \bibliography{MusicNST}
 \bibliographystyle{icml2018}
 
+\section{References}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% DELETE THIS PART. DO NOT PLACE CONTENT AFTER THE REFERENCES!
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\appendix
-\section{Do \emph{not} have an appendix here}
+A Roberts, J Engel, C Raffel, C Hawthorne, D Eck, "A hierarchical latent vector model for learning long-term structure in music"- arXiv preprint arXiv:1803.05428, 2018
 
-\textbf{\emph{Do not put content after the references.}}
-%
-Put anything that you might normally include after the references in a separate
-supplementary file.
+Brunner, Gino et al. “Symbolic Music Genre Transfer with CycleGAN.” 2018 IEEE 30th International Conference on Tools with Artificial Intelligence (ICTAI) (2018): 786-793.
 
-We recommend that you build supplementary material in a separate document.
-If you must create one PDF and cut it up, please be careful to use a tool that
-doesn't alter the margins, and that doesn't aggressively rewrite the PDF file.
-pdftk usually works fine. 
+Gatys, Leon A., et al. “Image Style Transfer Using Convolutional Neural Networks.” 2016 IEEE Conference on Computer Vision and Pattern Recognition (CVPR), 2016, doi:10.1109/cvpr.2016.265.
 
-\textbf{Please do not use Apple's preview to cut off supplementary material.} In
-previous years it has altered margins, and created headaches at the camera-ready
-stage. 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Higgins, Irina et al. “beta-VAE: Learning Basic Visual Concepts with a Constrained Variational Framework.” ICLR (2017).
 
+Hinton, Geoffrey E. and Ruslan R. Salakhutdinov. “Reducing the dimensionality of data with neural networks.” Science 313 5786 (2006): 504-7 .
+
+Hochreiter, Sepp, and Schmidhuber Jurgen. “Long Short Term Memory.” Long Short Term Memory, Inst. fur Informatik, TUM, 1994.
+
+I. Goodfellow, J. Pouget-Abadie, M. Mirza, B. Xu, D. WardeFarley, S. Ozair, A. Courville, and Y. Bengio, “Generative adversarial nets,” in Advan
+
+Jing, Yongcheng et al. “Neural Style Transfer: A Review.” CoRR abs/1705.04058 (2017): n. pag.
+
+Kingma, Diederik P. and Max Welling. “Auto-Encoding Variational Bayes.” CoRRabs/1312.6114 (2014): n. pag.
+
+Roberts, Adam et al. “A Hierarchical Latent Vector Model for Learning Long-Term Structure in Music.” ICML (2018).
+
+Roberts, Adam. “MusicVAE: Creating a Palette for Musical Scores with Machine Learning.” Magenta, 15 Mar. 2018, magenta.tensorflow.org/music-vae.
+
+Schuster, Mike and Kuldip K. Paliwal. “Bidirectional recurrent neural networks.” IEEE Trans. Signal Processing 45 (1997): 2673-2681.
+
+Sherstinsky, Alex. “Fundamentals of Recurrent Neural Network (RNN) and Long Short-Term Memory (LSTM) Network.” CoRR abs/1808.03314 (2018): n. Pag.
+
+Zhu, Jun-Yan et al. “Unpaired Image-to-Image Translation Using Cycle-Consistent Adversarial Networks.” 2017 IEEE International Conference on Computer Vision (ICCV)(2017): 2242-2251.
 
 \end{document}
 
